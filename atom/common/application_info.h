@@ -12,6 +12,9 @@
 
 #include <string>
 
+// Returns the user agent of Electron.
+std::string GetUserAgent();
+
 namespace atom {
 
 void OverrideApplicationName(const std::string& name);
