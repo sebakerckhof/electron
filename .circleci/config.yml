@@ -172,18 +172,20 @@ step-install-nodejs-on-mac: &step-install-nodejs-on-mac
   run:
     name: Install Node.js 10 on MacOS
     command: |
-      if [ "`uname`" == "Darwin" ]; then
-        brew update
-        brew install node@10
-        echo 'export PATH="/usr/local/opt/node@10/bin:$PATH"' >> $BASH_ENV
-      fi
+        curl -o- https://raw.githubusercontent.com/creationix/nvm/v0.33.8/install.sh | bash
+        export NVM_DIR="$HOME/.nvm"
+        [ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh"
+        nvm install 10.9.0
+        nvm alias default 10.9.0
+        # Adding to $BASH_ENV
+        echo 'export NVM_DIR="$HOME/.nvm"' >> $BASH_ENV
+        echo "[ -s \"$NVM_DIR/nvm.sh\" ] && . \"$NVM_DIR/nvm.sh\"" >> $BASH_ENV
 
 step-install-gnutar-on-mac: &step-install-gnutar-on-mac
   run:
     name: Install gnu-tar on macos
     command: |
       if [ "`uname`" == "Darwin" ]; then
-        brew update
         brew install gnu-tar
         ln -fs /usr/local/bin/gtar /usr/local/bin/tar
       fi
