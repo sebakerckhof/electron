@@ -1,0 +1,66 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: sebakerckhof <seba.kerckhof@gmail.com>
+Date: Thu, 20 Sep 2018 17:48:09 -0700
+Subject: pulse_monitor_sink.patch
+
+Re-enables opening monitor sinks as input source (removed in chromium revision 562383)
+
+diff --git a/media/audio/pulse/audio_manager_pulse.cc b/media/audio/pulse/audio_manager_pulse.cc
+index 3cd51959861c..7e57ae143288 100644
+--- a/media/audio/pulse/audio_manager_pulse.cc
++++ b/media/audio/pulse/audio_manager_pulse.cc
+@@ -111,12 +111,7 @@ AudioParameters AudioManagerPulse::GetInputStreamParameters(
+ 
+   // TODO(xians): add support for querying native channel layout for pulse.
+   UpdateNativeAudioHardwareInfo();
+-  // We don't want to accidentally open a monitor device, so return invalid
+-  // parameters for those.
+-  if (device_id == AudioDeviceDescription::kDefaultDeviceId &&
+-      default_source_is_monitor_) {
+-    return AudioParameters();
+-  }
++
+   return AudioParameters(AudioParameters::AUDIO_PCM_LOW_LATENCY,
+                          CHANNEL_LAYOUT_STEREO, native_input_sample_rate_,
+                          buffer_size);
+@@ -270,22 +265,11 @@ void AudioManagerPulse::InputDevicesInfoCallback(pa_context* context,
+     return;
+   }
+ 
+-  // Exclude output monitor (i.e. loopback) devices.
+-  if (info->monitor_of_sink != PA_INVALID_INDEX)
+-    return;
+-
+-  // If the device has ports, but none of them are available, skip it.
+-  if (info->n_ports > 0) {
+-    uint32_t port = 0;
+-    for (; port != info->n_ports; ++port) {
+-      if (info->ports[port]->available != PA_PORT_AVAILABLE_NO)
+-        break;
+-    }
+-    if (port == info->n_ports)
+-      return;
++  // Exclude the output devices.
++  if (info->monitor_of_sink == PA_INVALID_INDEX) {
++    manager->devices_->push_back(AudioDeviceName(info->description,
++                                                 info->name));
+   }
+-
+-  manager->devices_->push_back(AudioDeviceName(info->description, info->name));
+ }
+ 
+ void AudioManagerPulse::OutputDevicesInfoCallback(pa_context* context,
+diff --git a/media/audio/pulse/pulse_input.cc b/media/audio/pulse/pulse_input.cc
+index f2b6d929cf12..823d39f9c37d 100644
+--- a/media/audio/pulse/pulse_input.cc
++++ b/media/audio/pulse/pulse_input.cc
+@@ -52,9 +52,6 @@ PulseAudioInputStream::~PulseAudioInputStream() {
+ 
+ bool PulseAudioInputStream::Open() {
+   DCHECK(thread_checker_.CalledOnValidThread());
+-  if (device_name_ == AudioDeviceDescription::kDefaultDeviceId &&
+-      audio_manager_->DefaultSourceIsMonitor())
+-    return false;
+ 
+   AutoPulseLock auto_lock(pa_mainloop_);
+   if (!pulse::CreateInputStream(pa_mainloop_, pa_context_, &handle_, params_,
