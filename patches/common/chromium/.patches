@@ -78,3 +78,4 @@ video_capturer_dirty_rect.patch
 unsandboxed_ppapi_processes_skip_zygote.patch
 autofill_size_calculation.patch
 pulse_monitor_sink.patch
+enable_vaapi.patch
