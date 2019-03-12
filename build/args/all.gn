@@ -13,3 +13,5 @@ ffmpeg_branding = "Chrome"
 enable_basic_printing = true
 
 is_cfi = false
+
+use_vaapi=true
